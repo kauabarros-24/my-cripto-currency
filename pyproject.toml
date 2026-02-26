@@ -1,0 +1,15 @@
+[project]
+name = "my-cripto-currency"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "user.name: kauabarros-25", email = "user.mail: martinsbarroskaua@gmail.com"},
+]
+dependencies = ["flask>=3.1.3"]
+requires-python = "==3.12.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+
+[tool.pdm]
+distribution = false
