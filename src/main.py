@@ -1,17 +1,24 @@
 from uuid import uuid4
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from src.blockchain import Blockchain
 
-app = FastAPI()
+app = FastAPI(title="Blockchain Node")
 
 node_identifier = str(uuid4()).replace("-", "")
-blc = Blockchain()
 
+blc = Blockchain()
+class TransactionModel(BaseModel):
+    sender: str
+    recipient: str
+    amount: float
+
+class NodesModel(BaseModel):
+    nodes: list[str]
 
 @app.get("/")
 def root():
-    return {"message": "System running"}
-
+    return {"message": "Blockchain node running"}
 
 @app.get("/mine")
 def mine():
@@ -29,31 +36,48 @@ def mine():
     previous_hash = blc.hash(last_block)
     block = blc.new_block(proof, previous_hash)
 
-    response = {
+    return {
         "message": "New Block Forged",
-        "index": block["index"],
-        "transactions": block["transactions"],
-        "proof": block["proof"],
-        "previous_hash": block["previous_hash"],
+        "block": block,
     }
 
-    return response
-
-
-@app.post("/transaction")
-def new_transaction(sender: str = Body(...), recipient: str = Body(...), amount: float = Body(...)):
-    index = blc.new_transaction(sender, recipient, amount)
+@app.post("/transactions/new")
+def new_transaction(transaction: TransactionModel):
+    index = blc.new_transaction(
+        transaction.sender,
+        transaction.recipient,
+        transaction.amount
+    )
 
     return {
         "message": f"Transaction will be added to Block {index}"
     }
 
-
 @app.get("/chain")
-def chain():
-    response = {
+def full_chain():
+    return {
         "chain": blc.chain,
-        "len": len(blc.chain) 
+        "length": len(blc.chain)
     }
 
-    return response
+@app.post("/nodes/register")
+def register_nodes(data: NodesModel):
+    if not data.nodes:
+        raise HTTPException(400, "Lista de nós vazia")
+
+    for node in data.nodes:
+        blc.register_node(node)
+
+    return {
+        "message": "New nodes added",
+        "total_nodes": list(blc.nodes),
+    }
+
+@app.get("/nodes/resolve")
+def consensus():
+    replaced = blc.resolve_conflicts()
+
+    if replaced:
+        return {"message": "Chain replaced"}
+    else:
+        return {"message": "Chain is authoritative"}

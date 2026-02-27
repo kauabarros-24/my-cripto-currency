@@ -2,6 +2,7 @@ import hashlib
 import json
 from time import time
 from urllib.parse import urlparse
+import requests
 
 class Blockchain:
     def __init__(self):
@@ -14,7 +15,48 @@ class Blockchain:
     def register_node(self, address):
         parsed_url=urlparse(address)
         self.nodes.add(parsed_url.netloc)
+        
+    def resolve_conflicts(self):
+        neighbours = self.nodes
+        new_chain = None
+        max_length = len(self.chain)
 
+        for node in neighbours:
+            response = requests.get(f"http://{node}/chain")
+            
+            if response.status_code == 200:
+                lenght = response.json()["lenght"]
+                chain = response.json()["chain"]
+                
+                if lenght > max_length and self.valid_chain[chain]:
+                    max_length = lenght
+                    new_chain = chain   
+                    
+        if new_chain:
+            self.chain = new_chain
+            return True
+
+        return False
+    
+    def valid_chain(self, chain):
+        self.last_block = chain[0]
+        current_index = 1
+        
+        while current_index < len(chain):
+            block = chain[current_index]
+            
+            if block["previous_hash"] != self.hash(self.last_block):
+                return False
+            
+            if not self.valid_proof(last_block["proof"], block["proof"]):
+                return False
+
+            last_block = block
+            current_index += 1
+
+        return True
+            
+                
     def new_block(self, proof, previous_hash=None):
         block = {
             "index": len(self.chain) + 1,
@@ -59,5 +101,4 @@ class Blockchain:
     def valid_proof(last_proof, proof):
         guess = f"{last_proof}{proof}".encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
-
         return guess_hash[:4] == "0000"

@@ -3,56 +3,97 @@ import time
 from datetime import datetime
 
 BASE_URL = "http://127.0.0.1:8000"
+INTERVAL = 2
+TIMEOUT = 5
+RETRIES = 2
 
+# endpoints com payload opcional
 ENDPOINTS = [
-    ("GET", "/"),
-    ("GET", "/chain"),
-    ("GET", "/mine"),
+    {"method": "GET", "path": "/"},
+    {"method": "GET", "path": "/chain"},
+    {"method": "GET", "path": "/mine"},
 ]
 
-INTERVAL = 2
 
+# =============================
+# LOG FORMATTER
+# =============================
 
 def log(level, message):
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [{level}] {message}")
+    now = datetime.now().strftime("%H:%M:%S")
+    print(f"[{now}] [{level}] {message}")
 
 
-def request_endpoint(method, path):
+# =============================
+# REQUEST HANDLER
+# =============================
+
+session = requests.Session()
+
+
+def request_endpoint(method, path, payload=None):
     url = f"{BASE_URL}{path}"
-    start = time.time()
 
-    if method == "GET":
-        response = requests.get(url, timeout=5)
-    elif method == "POST":
-        response = requests.post(url, timeout=5)
-    else:
-        return
+    for attempt in range(RETRIES + 1):
+        try:
+            start = time.time()
 
-    elapsed = round(time.time() - start, 3)
+            if method == "GET":
+                response = session.get(url, timeout=TIMEOUT)
 
-    log("INFO", f"{method} {path} STATUS={response.status_code} TIME={elapsed}s")
+            elif method == "POST":
+                response = session.post(url, json=payload, timeout=TIMEOUT)
 
-    try:
-        log("DATA", response.json())
-    except:
-        log("DATA", response.text)
+            else:
+                log("WARN", f"Unsupported method: {method}")
+                return
 
+            elapsed = round(time.time() - start, 3)
+
+            log(
+                "INFO",
+                f"{method} {path} → {response.status_code} ({elapsed}s)"
+            )
+
+            try:
+                data = response.json()
+            except ValueError:
+                data = response.text
+
+            log("DATA", data)
+            return
+
+        except requests.ConnectionError:
+            log("ERROR", f"{path} → Connection refused")
+
+        except requests.Timeout:
+            log("ERROR", f"{path} → Timeout")
+
+        except requests.RequestException as e:
+            log("ERROR", f"{path} → {e}")
+
+        if attempt < RETRIES:
+            log("RETRY", f"{path} retrying...")
+            time.sleep(1)
+
+
+# =============================
+# MONITOR LOOP
+# =============================
 
 def monitor():
+    log("SYSTEM", "Monitor started")
+
     while True:
-        for method, path in ENDPOINTS:
-            try:
-                request_endpoint(method, path)
-            except requests.ConnectionError:
-                log("ERROR", f"{path} Connection refused")
-            except requests.Timeout:
-                log("ERROR", f"{path} Request timeout")
-            except Exception as e:
-                log("ERROR", f"{path} {str(e)}")
+        for endpoint in ENDPOINTS:
+            request_endpoint(
+                endpoint["method"],
+                endpoint["path"],
+                endpoint.get("payload")
+            )
 
         time.sleep(INTERVAL)
 
 
 if __name__ == "__main__":
-    log("SYSTEM", "Monitor started")
     monitor()
