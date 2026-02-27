@@ -1,25 +1,23 @@
-import hashlib
-import json
-from textwrap import dedent
-from time import time
 from uuid import uuid4
+from fastapi import FastAPI, Body
 from src.blockchain import Blockchain
-from flask import Flask, jsonify
-import requests
 
+app = FastAPI()
 
-
-app = Flask(__name__)
-
-node_identifier = str(uuid4()).replace('-', '')
-
+node_identifier = str(uuid4()).replace("-", "")
 blc = Blockchain()
 
 
-@app.route('/mine', methods=['GET'])
+@app.get("/")
+def root():
+    return {"message": "System running"}
+
+
+@app.get("/mine")
 def mine():
     last_block = blc.last_block
-    last_proof = last_block['proof']
+    last_proof = last_block["proof"]
+
     proof = blc.proof_of_work(last_proof)
 
     blc.new_transaction(
@@ -32,25 +30,30 @@ def mine():
     block = blc.new_block(proof, previous_hash)
 
     response = {
-        'message': "New Block Forged",
-        'index': block['index'],
-        'transactions': block['transactions'],
-        'proof': block['proof'],
-        'previous_hash': block['previous_hash'],
+        "message": "New Block Forged",
+        "index": block["index"],
+        "transactions": block["transactions"],
+        "proof": block["proof"],
+        "previous_hash": block["previous_hash"],
     }
-    return jsonify(response), 200
-    
-@app.route("/transaction", methods=['POST'])
-def new_transaction():
-    return "We'll add a new transaction"
 
-@app.route("/chain", methods=["GET"])
-def chain() -> dict:
+    return response
+
+
+@app.post("/transaction")
+def new_transaction(sender: str = Body(...), recipient: str = Body(...), amount: float = Body(...)):
+    index = blc.new_transaction(sender, recipient, amount)
+
+    return {
+        "message": f"Transaction will be added to Block {index}"
+    }
+
+
+@app.get("/chain")
+def chain():
     response = {
         "chain": blc.chain,
-        "len": len(blc.json)
+        "len": len(blc.chain) 
     }
-    return jsonify(response), 200
-    
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+
+    return response
