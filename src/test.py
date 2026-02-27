@@ -1,99 +1,72 @@
-import requests
-import time
-from datetime import datetime
+import pytest
+from fastapi.testclient import TestClient
+from src.main import app  # ajuste se seu arquivo tiver outro nome
 
-BASE_URL = "http://127.0.0.1:8000"
-INTERVAL = 2
-TIMEOUT = 5
-RETRIES = 2
-
-# endpoints com payload opcional
-ENDPOINTS = [
-    {"method": "GET", "path": "/"},
-    {"method": "GET", "path": "/chain"},
-    {"method": "GET", "path": "/mine"},
-]
+client = TestClient(app)
 
 
-# =============================
-# LOG FORMATTER
-# =============================
-
-def log(level, message):
-    now = datetime.now().strftime("%H:%M:%S")
-    print(f"[{now}] [{level}] {message}")
+def test_root():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json()["message"] == "Blockchain node running"
 
 
-# =============================
-# REQUEST HANDLER
-# =============================
+def test_new_transaction():
+    data = {
+        "sender": "alice",
+        "recipient": "bob",
+        "amount": 10
+    }
 
-session = requests.Session()
+    response = client.post("/transactions/new", json=data)
 
-
-def request_endpoint(method, path, payload=None):
-    url = f"{BASE_URL}{path}"
-
-    for attempt in range(RETRIES + 1):
-        try:
-            start = time.time()
-
-            if method == "GET":
-                response = session.get(url, timeout=TIMEOUT)
-
-            elif method == "POST":
-                response = session.post(url, json=payload, timeout=TIMEOUT)
-
-            else:
-                log("WARN", f"Unsupported method: {method}")
-                return
-
-            elapsed = round(time.time() - start, 3)
-
-            log(
-                "INFO",
-                f"{method} {path} → {response.status_code} ({elapsed}s)"
-            )
-
-            try:
-                data = response.json()
-            except ValueError:
-                data = response.text
-
-            log("DATA", data)
-            return
-
-        except requests.ConnectionError:
-            log("ERROR", f"{path} → Connection refused")
-
-        except requests.Timeout:
-            log("ERROR", f"{path} → Timeout")
-
-        except requests.RequestException as e:
-            log("ERROR", f"{path} → {e}")
-
-        if attempt < RETRIES:
-            log("RETRY", f"{path} retrying...")
-            time.sleep(1)
+    assert response.status_code == 200
+    assert "Transaction will be added" in response.json()["message"]
 
 
-# =============================
-# MONITOR LOOP
-# =============================
+def test_mine_block():
+    response = client.get("/mine")
 
-def monitor():
-    log("SYSTEM", "Monitor started")
+    assert response.status_code == 200
+    body = response.json()
 
-    while True:
-        for endpoint in ENDPOINTS:
-            request_endpoint(
-                endpoint["method"],
-                endpoint["path"],
-                endpoint.get("payload")
-            )
-
-        time.sleep(INTERVAL)
+    assert body["message"] == "New Block Forged"
+    assert "block" in body
 
 
-if __name__ == "__main__":
-    monitor()
+def test_full_chain():
+    response = client.get("/chain")
+
+    assert response.status_code == 200
+    body = response.json()
+
+    assert "chain" in body
+    assert "length" in body
+    assert isinstance(body["chain"], list)
+
+
+def test_register_nodes():
+    data = {
+        "nodes": [
+            "http://localhost:5000",
+            "http://localhost:5001"
+        ]
+    }
+
+    response = client.post("/nodes/register", json=data)
+
+    assert response.status_code == 200
+    assert "total_nodes" in response.json()
+
+
+def test_register_nodes_empty():
+    response = client.post("/nodes/register", json={"nodes": []})
+
+    assert response.status_code == 400
+
+
+def test_consensus():
+    response = client.get("/nodes/resolve")
+
+    assert response.status_code == 200
+    assert "message" in response.json()
