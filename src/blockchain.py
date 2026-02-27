@@ -28,14 +28,13 @@ class Blockchain(object):
         })
         return self.last_block['index'] + 1
     
-    
-    def last_block(self):
-        return self.chain[-1w]
+
  
     @staticmethod
     def hash(block):
-        pass
+        block_string = json.dumps(block, sort_keys=True).encode
+        return hashlib.sha256(block_string).hexdigest
 
     @property
     def last_block(self):
-        pass
+        return self.chain[-1]
