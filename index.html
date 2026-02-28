@@ -173,13 +173,14 @@
     </div>
 
     <div class="terminal-output" id="output">
-      <span class="prompt-line">👉 Blockchain Node Terminal (digite <span class="command">help</span> para ver os comandos)</span>
+      <span class="prompt-line">👉 Blockchain Node Terminal</span>
       <span class="prompt-line">🌐 URL atual: http://127.0.0.1:8000</span>
+      <span class="prompt-line">📌 Comandos: help, seturl, mine, chain, transaction, register, resolve, explain, clear</span>
     </div>
 
     <div class="terminal-input-area">
       <span class="prompt-sign">⧩</span>
-      <input type="text" id="commandInput" placeholder="Digite um comando (mine, chain, transaction, register, resolve, seturl, help, clear)" autofocus>
+      <input type="text" id="commandInput" placeholder="Digite um comando..." autofocus>
       <span class="enter-hint">⏎ ENTER</span>
     </div>
   </div>
@@ -204,6 +205,7 @@
 
     function clearOutput() {
       outputEl.innerHTML = '';
+      appendOutput('📟 Terminal limpo. Use help para comandos.');
     }
 
     function showApiResponse(promise, commandDescription) {
@@ -231,52 +233,51 @@
       const cmd = parts[0].toLowerCase();
 
       if (cmd === 'help') {
-        appendOutput('📋 <span class="command">Comandos disponíveis:</span>', 'prompt-line');
-        appendOutput('  <span class="command">seturl  &lt;url&gt;</span>         → Define a URL do nó (ex: http://127.0.0.1:8000)', 'prompt-line');
-        appendOutput('  <span class="command">mine</span>                    → Inicia mineração de um novo bloco', 'prompt-line');
-        appendOutput('  <span class="command">chain</span>                   → Exibe a cadeia completa', 'prompt-line');
-        appendOutput('  <span class="command">transaction &lt;rem&gt; &lt;dest&gt; &lt;valor&gt;</span>   → Cria nova transação', 'prompt-line');
-        appendOutput('  <span class="command">register &lt;nó_url&gt;</span>      → Registra um nó vizinho', 'prompt-line');
-        appendOutput('  <span class="command">resolve</span>                 → Executa consenso (substitui cadeia pela maior válida)', 'prompt-line');
-        appendOutput('  <span class="command">clear</span>                   → Limpa a tela', 'prompt-line');
-        appendOutput('  <span class="command">help</span>                    → Mostra esta ajuda', 'prompt-line');
+        appendOutput('📋 <span class="command">Comandos disponíveis:</span>');
+        appendOutput('  <span class="command">seturl  &lt;url&gt;</span>         → Define URL do nó');
+        appendOutput('  <span class="command">mine</span>                    → Minera novo bloco');
+        appendOutput('  <span class="command">chain</span>                   → Exibe cadeia');
+        appendOutput('  <span class="command">transaction &lt;rem&gt; &lt;dest&gt; &lt;valor&gt;</span>');
+        appendOutput('  <span class="command">register &lt;url&gt;</span>         → Registra nó vizinho');
+        appendOutput('  <span class="command">resolve</span>                 → Executa consenso');
+        appendOutput('  <span class="command">explain</span>                 → Explica blockchain');
+        appendOutput('  <span class="command">clear</span>                   → Limpa tela');
+        appendOutput('  <span class="command">help</span>                    → Mostra ajuda');
         return;
       }
 
       if (cmd === 'clear') {
         clearOutput();
-        appendOutput('📟 Terminal limpo. Digite <span class="command">help</span> para comandos.', 'prompt-line');
         return;
       }
 
       if (cmd === 'seturl') {
         if (parts.length < 2) {
-          appendOutput('❌ Uso: seturl &lt;url&gt;  (ex: seturl http://127.0.0.1:8000)', 'error');
+          appendOutput('❌ Uso: seturl <url> (ex: seturl http://localhost:5000)', 'error');
           return;
         }
-        const newUrl = parts[1];
-        baseUrl = newUrl;
+        baseUrl = parts[1];
         updateUrlDisplay();
-        appendOutput(`🌐 URL do nó alterada para: <span class="command">${baseUrl}</span>`, 'success');
+        appendOutput(`🌐 URL alterada para: ${baseUrl}`, 'success');
         return;
       }
 
       if (cmd === 'mine') {
-        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro com seturl.', 'error');
+        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro.', 'error');
         showApiResponse(fetch(`${baseUrl}/mine`), 'minerando bloco');
         return;
       }
 
       if (cmd === 'chain') {
-        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro com seturl.', 'error');
+        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro.', 'error');
         showApiResponse(fetch(`${baseUrl}/chain`), 'obtendo cadeia');
         return;
       }
 
       if (cmd === 'transaction') {
-        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro com seturl.', 'error');
+        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro.', 'error');
         if (parts.length < 4) {
-          appendOutput('❌ Uso: transaction &lt;remetente&gt; &lt;destinatário&gt; &lt;valor&gt;', 'error');
+          appendOutput('❌ Uso: transaction <remetente> <destinatário> <valor>', 'error');
           return;
         }
         const sender = parts[1];
@@ -298,9 +299,9 @@
       }
 
       if (cmd === 'register') {
-        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro com seturl.', 'error');
+        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro.', 'error');
         if (parts.length < 2) {
-          appendOutput('❌ Uso: register &lt;url_do_nó&gt;', 'error');
+          appendOutput('❌ Uso: register <url_do_nó>', 'error');
           return;
         }
         const node = parts[1];
@@ -316,12 +317,18 @@
       }
 
       if (cmd === 'resolve') {
-        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro com seturl.', 'error');
+        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro.', 'error');
         showApiResponse(fetch(`${baseUrl}/nodes/resolve`), 'executando consenso');
         return;
       }
+      
+      if (cmd === 'explain') {
+        if (!baseUrl) return appendOutput('❌ Defina a URL primeiro.', 'error');
+        showApiResponse(fetch(`${baseUrl}/generate/`), 'obtendo explicação blockchain');
+        return;
+      }
 
-      appendOutput(`❌ Comando desconhecido: "${cmd}". Digite <span class="command">help</span> para ver os comandos.`, 'error');
+      appendOutput(`❌ Comando desconhecido: "${cmd}". Digite help para ver os comandos.`, 'error');
     }
 
     commandInput.addEventListener('keydown', (e) => {
@@ -330,9 +337,7 @@
         if (rawCmd === '') return;
 
         appendOutput(`<span class="prompt-sign">⧩</span> <span class="command">${rawCmd}</span>`);
-
         processCommand(rawCmd);
-
         commandInput.value = '';
       }
     });

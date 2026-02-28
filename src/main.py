@@ -1,5 +1,6 @@
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException
+from huggingface_hub import InferenceClient
 from pydantic import BaseModel
 from src.blockchain import Blockchain
 
@@ -8,6 +9,16 @@ app = FastAPI(title="Blockchain Node")
 node_identifier = str(uuid4()).replace("-", "")
 
 blc = Blockchain()
+
+MODEL_REPO = "KaliumPotas/KaliumKwenModel"
+
+client = InferenceClient(
+    model=MODEL_REPO,
+    token=None
+)
+
+class Prompt(BaseModel):
+    prompt: str
 class TransactionModel(BaseModel):
     sender: str
     recipient: str
@@ -81,3 +92,19 @@ def consensus():
         return {"message": "Chain replaced"}
     else:
         return {"message": "Chain is authoritative"}
+    
+@app.get("/generate")
+def generate():
+    prompt = {
+        "prompt": "Explica da maneira mais didática possível o que blockchain"
+    }
+    try:
+        response = client.text_generation(
+            prompt.prompt,
+            max_new_tokens=200
+        )
+
+        return response
+
+    except Exception as e:
+        raise HTTPException(500, str(e))
