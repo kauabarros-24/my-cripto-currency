@@ -3,8 +3,17 @@ from fastapi import FastAPI, HTTPException
 from huggingface_hub import InferenceClient
 from pydantic import BaseModel
 from src.blockchain import Blockchain
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(title="Blockchain Node")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 node_identifier = str(uuid4()).replace("-", "")
 
@@ -100,7 +109,7 @@ def generate():
     }
     try:
         response = client.text_generation(
-            prompt.prompt,
+            prompt["prompt"],
             max_new_tokens=200
         )
 

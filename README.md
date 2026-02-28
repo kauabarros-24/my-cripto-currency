@@ -16,6 +16,12 @@ O objetivo é tornar o aprendizado mais interativo e fácil de entender.
 
 ## ▶️ Como executar o projeto
 
-### 1️⃣ Rodar o servidor
+### 1 Rodar o servidor
 ```bash
 pdm run dev
+
+```
+### 2 Abrir o html no navegador
+
+
+### 3 Diviarte-se
