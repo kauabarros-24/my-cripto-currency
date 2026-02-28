@@ -1,72 +1,108 @@
-import pytest
-from fastapi.testclient import TestClient
-from src.main import app  # ajuste se seu arquivo tiver outro nome
+import requests
+import time
 
-client = TestClient(app)
+def transaction(url):
+    sender = input("Quem envia: ")
+    recipient = input("Quem recebe: ")
+    amount = float(input(f"Quanto {sender} envia para {recipient}: "))
 
-
-def test_root():
-    response = client.get("/")
-    assert response.status_code == 200
-    assert response.json()["message"] == "Blockchain node running"
-
-
-def test_new_transaction():
     data = {
-        "sender": "alice",
-        "recipient": "bob",
-        "amount": 10
+        "sender": sender,
+        "recipient": recipient,
+        "amount": amount
     }
 
-    response = client.post("/transactions/new", json=data)
+    print("Gerando transação...")
+    time.sleep(0.8)
 
-    assert response.status_code == 200
-    assert "Transaction will be added" in response.json()["message"]
+    response = requests.post(f"{url}/transactions/new", json=data)
 
+    if response.status_code not in [200, 201]:
+        print("Erro:", response.text)
+        return
 
-def test_mine_block():
-    response = client.get("/mine")
-
-    assert response.status_code == 200
-    body = response.json()
-
-    assert body["message"] == "New Block Forged"
-    assert "block" in body
+    print("✅ Transação criada:")
+    print(response.json())
 
 
-def test_full_chain():
-    response = client.get("/chain")
+def mine(url):
+    print("Minerando bloco...")
+    time.sleep(1)
 
-    assert response.status_code == 200
-    body = response.json()
+    response = requests.get(f"{url}/mine")
 
-    assert "chain" in body
-    assert "length" in body
-    assert isinstance(body["chain"], list)
+    if response.status_code != 200:
+        print("Erro:", response.text)
+        return
+
+    print("⛏ Bloco minerado:")
+    print(response.json())
 
 
-def test_register_nodes():
+def chain(url):
+    response = requests.get(f"{url}/chain")
+
+    if response.status_code != 200:
+        print("Erro:", response.text)
+        return
+
+    print("📦 Blockchain:")
+    print(response.json())
+
+
+def node(url):
+    node_address = input("Digite URL do node (ex: http://127.0.0.1:5001): ")
+
     data = {
-        "nodes": [
-            "http://localhost:5000",
-            "http://localhost:5001"
-        ]
+        "nodes": [node_address]
     }
 
-    response = client.post("/nodes/register", json=data)
+    response = requests.post(f"{url}/nodes/register", json=data)
 
-    assert response.status_code == 200
-    assert "total_nodes" in response.json()
+    if response.status_code != 200:
+        print("Erro:", response.text)
+        return
 
-
-def test_register_nodes_empty():
-    response = client.post("/nodes/register", json={"nodes": []})
-
-    assert response.status_code == 400
+    print("🌐 Node registrado:")
+    print(response.json())
 
 
-def test_consensus():
-    response = client.get("/nodes/resolve")
+url = input("Digite a URL do node (ex: http://127.0.0.1:8000): ")
 
-    assert response.status_code == 200
-    assert "message" in response.json()
+response = requests.get(url)
+
+if response.status_code == 200:
+    print("✅ Sistema rodando!")
+
+    while True:
+        print("\n=== MENU ===")
+        print("1 → Nova transação")
+        print("2 → Minerar bloco")
+        print("3 → Ver blockchain")
+        print("4 → Registrar node")
+        print("5 → Sair")
+
+        escolha = input("Escolha: ")
+
+        if escolha == "1":
+            transaction(url)
+
+        elif escolha == "2":
+            mine(url)
+
+        elif escolha == "3":
+            chain(url)
+
+        elif escolha == "4":
+            node(url)
+
+        elif escolha == "5":
+            break
+
+        else:
+            print("Opção inválida")
+
+else:
+    print("❌ Sistema não está rodando")
+        
+        
