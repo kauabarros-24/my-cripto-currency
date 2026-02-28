@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Blockchain Dashboard</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  width: 1100px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 0 50px rgba(0,0,0,0.4);
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.card {
+  background: rgba(255,255,255,0.08);
+  padding: 20px;
+  border-radius: 15px;
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(90deg,#00c6ff,#0072ff);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+
+.output {
+  margin-top: 20px;
+  background: black;
+  padding: 20px;
+  border-radius: 15px;
+  height: 300px;
+  overflow: auto;
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>🚀 Blockchain Node Dashboard</h1>
+
+<div class="grid">
+
+<div class="card">
+<h3>🌐 Node URL</h3>
+<input id="url" placeholder="http://127.0.0.1:8000">
+</div>
+
+<div class="card">
+<h3>⛏ Minerar Bloco</h3>
+<button onclick="mine()">Minerar</button>
+</div>
+
+<div class="card">
+<h3>💸 Nova Transação</h3>
+<input id="sender" placeholder="Quem envia">
+<input id="recipient" placeholder="Quem recebe">
+<input id="amount" placeholder="Valor">
+<button onclick="newTransaction()">Enviar</button>
+</div>
+
+<div class="card">
+<h3>🌐 Registrar Node</h3>
+<input id="nodeAddress" placeholder="http://127.0.0.1:5001">
+<button onclick="registerNode()">Registrar</button>
+</div>
+
+<div class="card">
+<h3>📦 Ver Blockchain</h3>
+<button onclick="getChain()">Mostrar Chain</button>
+</div>
+
+<div class="card">
+<h3>🤝 Resolver Conflitos</h3>
+<button onclick="resolve()">Executar Consenso</button>
+</div>
+
+</div>
+
+<div class="output" id="output"></div>
+</div>
+
+<script>
+
+function getUrl() {
+  return document.getElementById("url").value
+}
+
+function show(data) {
+  document.getElementById("output").textContent =
+    JSON.stringify(data, null, 2)
+}
+
+async function newTransaction() {
+  const url = getUrl()
+  const sender = document.getElementById("sender").value
+  const recipient = document.getElementById("recipient").value
+  const amount = parseFloat(document.getElementById("amount").value)
+
+  const res = await fetch(`${url}/transactions/new`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({sender, recipient, amount})
+  })
+
+  show(await res.json())
+}
+
+async function mine() {
+  const url = getUrl()
+  const res = await fetch(`${url}/mine`)
+  show(await res.json())
+}
+
+async function getChain() {
+  const url = getUrl()
+  const res = await fetch(`${url}/chain`)
+  show(await res.json())
+}
+
+async function registerNode() {
+  const url = getUrl()
+  const node = document.getElementById("nodeAddress").value
+
+  const res = await fetch(`${url}/nodes/register`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({nodes:[node]})
+  })
+
+  show(await res.json())
+}
+
+async function resolve() {
+  const url = getUrl()
+  const res = await fetch(`${url}/nodes/resolve`)
+  show(await res.json())
+}
+
+</script>
+
+</body>
+</html>
