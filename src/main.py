@@ -4,6 +4,7 @@ from huggingface_hub import InferenceClient
 from pydantic import BaseModel
 from src.blockchain import Blockchain
 from fastapi.middleware.cors import CORSMiddleware
+from src.config import get_text_model
 
 
 app = FastAPI(title="Blockchain Node")
@@ -101,19 +102,27 @@ def consensus():
         return {"message": "Chain replaced"}
     else:
         return {"message": "Chain is authoritative"}
-    
+
 @app.get("/generate")
 def generate():
-    prompt = {
-        "prompt": "Explica da maneira mais didática possível o que blockchain"
+    
+    data = {
+        "prompt": "De uma breve explicação sobre blockchain"
     }
     try:
-        response = client.text_generation(
-            prompt["prompt"],
-            max_new_tokens=200
+        model = get_text_model()
+        if model is None:
+            raise HTTPException(503, "Modelo de texto não disponível")
+            
+        output = model.create_chat_completion(
+            messages=[{"role": "user", "content": data.prompt}],
+            max_tokens=200,
+            temperature=0.7
         )
-
-        return response
-
+        
+        return {
+            "prompt": data.prompt,
+            "response": output["choices"][0]["message"]["content"]
+        }
     except Exception as e:
-        raise HTTPException(500, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
