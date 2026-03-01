@@ -111,18 +111,17 @@ def generate():
     }
     try:
         model = get_text_model()
+        print(model)
         if model is None:
             raise HTTPException(503, "Modelo de texto não disponível")
             
         output = model.create_chat_completion(
-            messages=[{"role": "user", "content": data.prompt}],
+            messages=[{"role": "user", "content": data["prompt"]}],
             max_tokens=200,
             temperature=0.7
         )
         
-        return {
-            "prompt": data.prompt,
-            "response": output["choices"][0]["message"]["content"]
-        }
+        return output["choices"][0]["message"]["content"].replace('"', "").replace("\n", "")
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
